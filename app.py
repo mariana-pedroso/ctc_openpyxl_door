@@ -24,7 +24,7 @@ def extrair_dados_ctc(texto):
     """
 
     # Expressão regular para encontrar as linhas de Competência e Valor
-    padrao = r"(\d{2}/\d{4})\s+(\d{1,3},\d{2})"
+    padrao = r"(\d{2}/\d{4})\s+(\d{1,3}(?:\.\d{3})*,\d{2})"
     correspondencias = re.findall(padrao, texto)
 
     competencias = []
