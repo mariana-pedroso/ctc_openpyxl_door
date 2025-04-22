@@ -32,7 +32,7 @@ def extrair_dados_ctc(texto):
 
     for comp, valor in correspondencias:
         competencias.append(comp)
-        valores.append(float(valor.replace(',', '.')))  # Converter para float
+        valores.append(float(valor.replace('.', '').replace(',', '.')))  # Converter para float
 
     df = pd.DataFrame({'Competência': competencias, 'Valor': valores})
     return df
