@@ -12,9 +12,44 @@ logging.basicConfig(level=logging.INFO,
 # Variável global para controlar o número do arquivo a ser salvo
 arquivo_contador = 1
 
+def converter_string_para_float(valor_str):
+    """
+    Converte uma string de valor monetário (antigo ou novo formato) para float.
+    Detecta automaticamente o separador decimal.
+
+    Args:
+        valor_str (str): A string contendo o valor monetário.
+
+    Returns:
+        float: O valor numérico convertido.
+    """
+    if ',' in valor_str and '.' in valor_str:
+        # Se contiver ambos, verifica qual é o separador decimal
+        # Ex: 2.258,31 (formato antigo - vírgula é decimal)
+        # Ex: 2,894.28 (formato novo - ponto é decimal)
+        if valor_str.index(',') < valor_str.index('.'):
+            # Ex: 2,894.28 -> vírgula antes do ponto, então vírgula é milhar, ponto é decimal (NOVO)
+            valor_limpo = valor_str.replace(',', '') # Remove vírgula de milhar
+            return float(valor_limpo)
+        else:
+            # Ex: 2.258,31 -> ponto antes da vírgula, então ponto é milhar, vírgula é decimal (ANTIGO)
+            valor_limpo = valor_str.replace('.', '').replace(',', '.') # Remove ponto de milhar, troca vírgula por ponto decimal
+            return float(valor_limpo)
+    elif ',' in valor_str:
+        # Só tem vírgula, assume que é separador decimal (formato antigo simplificado, ou sem milhar)
+        valor_limpo = valor_str.replace('.', '').replace(',', '.')
+        return float(valor_limpo)
+    elif '.' in valor_str:
+        # Só tem ponto, assume que é separador decimal (formato novo simplificado, ou sem milhar)
+        return float(valor_str)
+    else:
+        # Nenhum separador, tenta converter diretamente (ex: "100")
+        return float(valor_str)
+
 def extrair_dados_ctc(texto):
     """
     Extrai os dados de Competência e Valor do texto da Certidão de Tempo de Contribuição.
+    Suporta os dois formatos de valor.
 
     Args:
         texto (str): O texto da Certidão de Tempo de Contribuição.
@@ -24,15 +59,19 @@ def extrair_dados_ctc(texto):
     """
 
     # Expressão regular para encontrar as linhas de Competência e Valor
-    padrao = r"(\d{2}/\d{4})\s+(\d{1,}(?:\.\d{3})*,\d{2})"
+    # Alterada para capturar ambos os formatos de número:
+    # (\d{1,}(?:\.\d{3})*,\d{2}) -> formato antigo (ponto milhar, vírgula decimal)
+    # OU
+    # (\d{1,}(?:,\d{3})*\.\d{2}) -> formato novo (vírgula milhar, ponto decimal)
+    padrao = r"(\d{2}/\d{4})\s+(\d{1,}(?:(?:\.\d{3})*,\d{2}|(?:,\d{3})*\.\d{2}))"
     correspondencias = re.findall(padrao, texto)
 
     competencias = []
     valores = []
 
-    for comp, valor in correspondencias:
+    for comp, valor_str in correspondencias:
         competencias.append(comp)
-        valores.append(float(valor.replace('.', '').replace(',', '.')))  # Converter para float
+        valores.append(converter_string_para_float(valor_str)) # Usar a nova função de conversão
 
     df = pd.DataFrame({'Competência': competencias, 'Valor': valores})
     return df
@@ -78,12 +117,13 @@ def processar_dados_e_salvar_excel(texto_entrada):
 
     except Exception as e:
         logging.error(f"Erro ao processar os dados: {e}")
-        return None, None
+        # Retorna None para o caminho do arquivo e uma mensagem de erro para o Gradio
+        return None, f"Ocorreu um erro ao processar os dados: {e}. Verifique o formato do texto de entrada."
 
 # Interface Gradio
 iface = gr.Interface(
     fn=processar_dados_e_salvar_excel,
-    inputs=[gr.Textbox(label="Cole o texto da CTC aqui. Dúvidas, falar com Mariana Pedroso")],
+    inputs=[gr.Textbox(label="Cole o texto da CTC aqui. Dúvidas, falar com Mariana.")],
     outputs=[gr.File(label="Download do arquivo Excel", file_types=[".xlsx"]), gr.Textbox(label="Mensagem")],
 )
 
