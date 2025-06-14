@@ -83,7 +83,7 @@ def processar_dados_e_salvar_excel(texto_entrada):
 # Interface Gradio
 iface = gr.Interface(
     fn=processar_dados_e_salvar_excel,
-    inputs=[gr.Textbox(label="Cole o texto da CTC aqui")],
+    inputs=[gr.Textbox(label="Cole o texto da CTC aqui. Dúvidas, falar com Mariana Pedroso")],
     outputs=[gr.File(label="Download do arquivo Excel", file_types=[".xlsx"]), gr.Textbox(label="Mensagem")],
 )
 
